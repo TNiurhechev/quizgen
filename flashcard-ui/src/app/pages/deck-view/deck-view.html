@@ -1,0 +1,149 @@
+<div class="max-w-4xl mx-auto mt-8 px-6 pb-16">
+  
+  <button routerLink="/" class="text-slate-400 hover:text-white text-sm flex items-center gap-1.5 mb-6 transition-colors group">
+    <span class="group-hover:-translate-x-1 transition-transform">←</span> Back to Dashboard
+  </button>
+
+  @if (isLoading) {
+    <div class="flex flex-col items-center justify-center py-24">
+      <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mb-4"></div>
+      <p class="text-slate-400 text-sm">Opening deck...</p>
+    </div>
+  } @else if (errorMessage) {
+    <div class="bg-rose-950/40 border border-rose-800 text-rose-300 p-6 rounded-xl text-center">
+      <p class="font-semibold">{{ errorMessage }}</p>
+      <button routerLink="/" class="mt-4 text-xs bg-slate-800 px-4 py-2 rounded-lg text-white">Go Home</button>
+    </div>
+  } @else if (deck) {
+    
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6 mb-8">
+      <div>
+        <h1 class="text-3xl font-bold text-white mb-1">{{ deck.title }}</h1>
+        <span class="text-xs bg-indigo-950 text-indigo-400 border border-indigo-800 px-2.5 py-1 rounded-full font-semibold uppercase tracking-wider">
+          {{ deck.subject }}
+        </span>
+      </div>
+
+      <div class="flex bg-slate-950 p-1 rounded-lg border border-slate-800 self-start md:self-auto">
+        <button (click)="activeView = 'flashcards'"
+          [class]="activeView === 'flashcards' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-white'"
+          class="px-4 py-1.5 text-sm rounded-md transition-all">
+          Flashcards ({{ deck.flashCards?.length || 0 }})
+        </button>
+        <button (click)="activeView = 'quiz'"
+          [class]="activeView === 'quiz' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-white'"
+          class="px-4 py-1.5 text-sm rounded-md transition-all">
+          Practice Quiz ({{ deck.questions?.length || 0 }})
+        </button>
+      </div>
+    </div>
+
+    @if (activeView === 'flashcards') {
+      @if (deck.flashCards && deck.flashCards.length > 0) {
+        <div class="flex flex-col items-center gap-6">
+          
+          <div (click)="flipCard()" 
+            class="w-full max-w-2xl h-[350px] cursor-pointer group perspective">
+            
+            <div [class.rotate-y-180]="isFlipped"
+              class="w-full h-full relative transition-transform duration-500 transform-style-3d bg-slate-800 border border-slate-700 hover:border-indigo-500/50 rounded-2xl shadow-2xl flex items-center justify-center p-8">
+              
+              <div class="absolute inset-0 backface-hidden flex flex-col justify-between p-8">
+                <span class="text-xs text-indigo-400 tracking-widest font-bold uppercase">Card {{ currentCardIndex + 1 }} of {{ deck.flashCards.length }}</span>
+                <p class="text-2xl font-bold text-white text-center leading-relaxed max-w-md mx-auto">{{ deck.flashCards[currentCardIndex].front }}</p>
+                <span class="text-xs text-slate-500 text-center select-none">Click Card to Flip</span>
+              </div>
+
+              <div class="absolute inset-0 backface-hidden rotate-y-180 flex flex-col justify-between p-8 bg-slate-900 border border-indigo-500/50 rounded-2xl">
+                <span class="text-xs text-indigo-400 tracking-widest font-bold uppercase">Answer Definition</span>
+                <p class="text-lg text-slate-200 text-center leading-relaxed max-w-md mx-auto overflow-y-auto max-h-[180px]">{{ deck.flashCards[currentCardIndex].back }}</p>
+                <span class="text-xs text-slate-500 text-center select-none">Click Card to Flip</span>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="flex items-center gap-6 mt-4">
+            <button (click)="prevCard()" [disabled]="currentCardIndex === 0"
+              class="bg-slate-850 hover:bg-slate-800 text-white p-3 rounded-full border border-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+              ◀ Previous
+            </button>
+            <span class="text-sm font-semibold text-slate-400">
+              {{ currentCardIndex + 1 }} / {{ deck.flashCards.length }}
+            </span>
+            <button (click)="nextCard()" [disabled]="currentCardIndex === deck.flashCards.length - 1"
+              class="bg-slate-850 hover:bg-slate-800 text-white p-3 rounded-full border border-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+              Next ▶
+            </button>
+          </div>
+
+        </div>
+      } @else {
+        <p class="text-center text-slate-500 py-12">No flashcards found in this deck.</p>
+      }
+    }
+
+    @if (activeView === 'quiz') {
+      @if (deck.questions && deck.questions.length > 0) {
+        <div class="space-y-8">
+          
+          @if (quizGraded) {
+            <div class="bg-indigo-950/40 border border-indigo-800 rounded-xl p-6 text-center animate-fade-in flex flex-col items-center">
+              <span class="text-4xl mb-2">🎉</span>
+              <h3 class="text-xl font-bold text-white">Practice Quiz Completed!</h3>
+              <p class="text-2xl font-black text-indigo-400 mt-2">
+                Score: {{ score }} / {{ deck.questions.length }}
+              </p>
+              <p class="text-sm text-slate-400 mt-1">
+                ({{ ((score / deck.questions.length) * 100) | number:'1.0-0' }}% correct)
+              </p>
+              <button (click)="resetQuiz()" class="mt-4 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 px-6 rounded-lg transition-colors text-sm shadow-md">
+                Try Again
+              </button>
+            </div>
+          }
+
+          @for (question of deck.questions; track question.text) {
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+              <div class="flex items-start justify-between gap-4 mb-4">
+                <h3 class="text-base font-semibold text-white leading-relaxed">
+                  <span class="text-indigo-400 font-bold mr-1.5">{{ $index + 1 }}.</span>
+                  {{ question.text }}
+                </h3>
+                <span class="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded border"
+                  [class]="isMultipleChoice(question) ? 'border-amber-700 text-amber-400 bg-amber-950/20' : 'border-blue-700 text-blue-400 bg-blue-950/20'">
+                  {{ isMultipleChoice(question) ? 'Multi-Choice' : 'Single-Choice' }}
+                </span>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                @for (option of question.options; track option; let oIndex = $index) {
+                  <button (click)="toggleOption(question, option, isMultipleChoice(question))"
+                    [disabled]="quizGraded"
+                    [class]="getOptionClass(question, option)"
+                    class="border p-3.5 rounded-lg text-left text-sm transition-all focus:outline-none flex items-center gap-3">             
+                    <span class="w-5 h-5 flex items-center justify-center rounded border border-slate-700 text-xs font-semibold select-none bg-slate-900">
+                      {{ ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'][oIndex] }}
+                    </span>
+                    {{ option }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          @if (!quizGraded) {
+            <div class="flex justify-end pt-4 border-t border-slate-800">
+              <button (click)="gradeQuiz()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 px-10 rounded-lg transition-all active:scale-95 shadow-lg shadow-indigo-600/20">
+                Grade Quiz
+              </button>
+            </div>
+          }
+
+        </div>
+      } @else {
+        <p class="text-center text-slate-500 py-12">No practice questions found in this deck.</p>
+      }
+    }
+
+  }
+</div>

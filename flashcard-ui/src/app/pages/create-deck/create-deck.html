@@ -1,0 +1,153 @@
+<div class="max-w-6xl mx-auto mt-12 p-8 bg-slate-900 rounded-xl border border-slate-700 shadow-2xl mb-12 relative overflow-hidden">
+  
+  @if (isGenerating) {
+    <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center z-50">
+      <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-500 mb-4"></div>
+      <h3 class="text-xl font-bold text-white">Generating Deck...</h3>
+      <p class="text-slate-400 text-sm mt-1">Calling AI to generate questions and flashcards. Hang tight!</p>
+    </div>
+  }
+
+  <h2 class="text-2xl font-bold text-white mb-6 border-b border-slate-800 pb-4">AI Study Deck Generator</h2>
+
+  @if (errorMessage) {
+    <div class="bg-rose-950/50 border border-rose-800 text-rose-300 p-4 rounded-lg mb-6 text-sm">
+      {{ errorMessage }}
+    </div>
+  }
+
+  <form (ngSubmit)="onSubmit()" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    
+    <div class="lg:col-span-1 bg-slate-950 p-6 rounded-lg border border-slate-800 flex flex-col gap-5">
+      <h3 class="text-sm font-semibold tracking-wider text-indigo-400 uppercase mb-2">Deck Configuration</h3>
+      
+      <div>
+        <label class="block text-xs font-medium text-slate-400 mb-1">Language</label>
+        <select [(ngModel)]="config.language" name="language" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-white focus:border-indigo-500 outline-none">
+          <option>English</option>
+          <option>Spanish</option>
+          <option>French</option>
+          <option>German</option>
+          <option>Polish</option>
+          <option>Ukrainian</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-slate-400 mb-1">Difficulty</label>
+        <select [(ngModel)]="config.difficulty" name="difficulty" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-white focus:border-indigo-500 outline-none">
+          <option>Easy</option>
+          <option>Standard</option>
+          <option>Hard</option>
+        </select>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Flashcards</label>
+          <input type="number" [(ngModel)]="config.flashcardCount" name="flashcardCount" min="0" max="50" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-white focus:border-indigo-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Quiz Questions</label>
+          <input type="number" [(ngModel)]="config.questionCount" name="questionCount" min="0" max="50" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-white focus:border-indigo-500 outline-none">
+        </div>
+      </div>
+
+      <div class="pt-2 border-t border-slate-800">
+        <label class="block text-xs font-medium text-slate-400 mb-2">Question Pattern</label>
+        <div class="flex flex-col gap-2">
+          <label class="flex items-center gap-2.5 text-sm text-slate-300 cursor-pointer">
+            <input type="radio" name="questionType" value="single" [(ngModel)]="config.questionType" 
+              class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 bg-slate-800 border-slate-700 focus:ring-offset-slate-900 focus:ring-2">
+            <span>Single-Answer Only</span>
+          </label>
+          
+          <label class="flex items-center gap-2.5 text-sm text-slate-300 cursor-pointer">
+            <input type="radio" name="questionType" value="multiple" [(ngModel)]="config.questionType"
+              class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 bg-slate-800 border-slate-700 focus:ring-offset-slate-900 focus:ring-2">
+            <span>Multiple-Answers Only</span>
+          </label>
+
+          <label class="flex items-center gap-2.5 text-sm text-slate-300 cursor-pointer">
+            <input type="radio" name="questionType" value="both" [(ngModel)]="config.questionType"
+              class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 bg-slate-800 border-slate-700 focus:ring-offset-slate-900 focus:ring-2">
+            <span>Mixed Layout (Both)</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="lg:col-span-2 flex flex-col justify-between">
+      <div>
+        <div class="flex border-b border-slate-800 mb-6">
+          <button type="button" (click)="activeTab = 'topic'" 
+            [class]="activeTab === 'topic' ? 'border-b-2 border-indigo-500 text-indigo-400' : 'text-slate-400 hover:text-slate-200'"
+            class="px-5 py-2 font-semibold text-sm transition-all outline-none">
+            Topic Prompt
+          </button>
+          <button type="button" (click)="activeTab = 'text'" 
+            [class]="activeTab === 'text' ? 'border-b-2 border-indigo-500 text-indigo-400' : 'text-slate-400 hover:text-slate-200'"
+            class="px-5 py-2 font-semibold text-sm transition-all outline-none">
+            Paste Notes
+          </button>
+          <button type="button" (click)="activeTab = 'file'" 
+            [class]="activeTab === 'file' ? 'border-b-2 border-indigo-500 text-indigo-400' : 'text-slate-400 hover:text-slate-200'"
+            class="px-5 py-2 font-semibold text-sm transition-all outline-none">
+            Upload Document
+          </button>
+        </div>
+
+        @if (activeTab === 'topic') {
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Subject / Topic</label>
+            <input type="text" [(ngModel)]="topicInput" name="topic" placeholder="e.g. Java Streams API or French Revolution" required
+              class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none">
+            <p class="text-xs text-slate-500 mt-1">Our system will gather common facts and concepts on this topic to draft your deck.</p>
+          </div>
+        }
+
+        @if (activeTab === 'text') {
+          <div class="flex flex-col gap-4">
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Topic/Deck Title (Optional)</label>
+              <input type="text" [(ngModel)]="topicInput" name="topic" placeholder="e.g. Chemistry Chapter 4 Notes"
+                class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Raw Text Source</label>
+              <textarea [(ngModel)]="sourceInput" name="source" rows="8" required
+                placeholder="Paste book fragments, notes, or paragraphs directly here..."
+                class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none"></textarea>
+            </div>
+          </div>
+        }
+
+        @if (activeTab === 'file') {
+          <div class="border-2 border-dashed border-slate-700 hover:border-indigo-500/50 rounded-lg p-10 text-center transition-colors relative cursor-pointer bg-slate-950">
+            <input type="file" (change)="onFileSelected($event)" accept=".pdf,.docx,.txt"
+              class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
+            
+            <div class="flex flex-col items-center">
+              <span class="text-4xl mb-3">📁</span>
+              @if (selectedFile) {
+                <p class="text-sm font-semibold text-indigo-400 mb-1">{{ selectedFile.name }}</p>
+                <p class="text-xs text-slate-500">Click or drop to replace file</p>
+              } @else {
+                <p class="text-sm font-semibold text-slate-300 mb-1">Drag & drop your file here</p>
+                <p class="text-xs text-slate-500">Supports .txt, .docx, or .pdf (Max 10MB)</p>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="mt-8 pt-4 border-t border-slate-800 flex justify-end">
+        <button type="submit" 
+          class="bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-600 font-bold py-3 px-8 rounded-lg transition-all active:scale-95 shadow-lg shadow-indigo-600/20">
+          Generate Study Deck
+        </button>
+      </div>
+
+    </div>
+  </form>
+</div>
